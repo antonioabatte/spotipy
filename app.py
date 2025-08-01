@@ -32,23 +32,25 @@ def get_playlist_id(url):
 def autenticar_spotify():
     "Autentica com a API do Spotify usando Spotipy. Usa cache do Streamlit."
     try:
+        # removido cache_path - isso faz com que o token de autenticação seja gerenciado na memória da sessão, o que é mais estável em ambientes de nuvem como o do Streamlit.
         auth_manager = SpotifyOAuth(
             client_id=st.secrets["SPOTIPY_CLIENT_ID"],
             client_secret=st.secrets["SPOTIPY_CLIENT_SECRET"],
-            redirect_uri=SPOTIPY_REDIRECT_URI,
+            redirect_uri=st.secrets["SPOTIPY_REDIRECT_URI"],
             scope="playlist-read-private",
-            cache_path=".spotipy_cache" 
+            cache_path=None 
         )
         return spotipy.Spotify(auth_manager=auth_manager)
     except Exception as e:
         st.error(f"❌ Erro na autenticação do Spotify: {str(e)}")
-        st.error("Verifique se as variáveis de ambiente (secrets) `SPOTIPY_CLIENT_ID` e `SPOTIPY_CLIENT_SECRET` estão configuradas corretamente na sua plataforma de hospedagem.")
+        st.error("Verifique se seus 'secrets' (credenciais) estão configurados corretamente e se a 'Redirect URI' no dashboard do Spotify corresponde exatamente à URL do seu app.")
         st.stop()
 
 @st.cache_data
-def get_todas_as_musicas(playlist_id):
+def get_todas_as_musicas(playlist_id): # <-- Apenas playlist_id como argumento
     "Busca TODAS as músicas de uma playlist, lidando com paginação."
     try:
+        # A função agora obtém o cliente do Spotify por si mesma.
         _sp = autenticar_spotify()
         
         resultados = _sp.playlist_items(playlist_id)
