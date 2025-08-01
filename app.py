@@ -6,17 +6,16 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from youtubesearchpython import VideosSearch
 import yt_dlp
-import tempfile  # Para criar diretórios temporários
-import zipfile   # Para criar o arquivo .zip
-import shutil    # Para apagar a pasta temporária, se necessário
+import tempfile  
+import zipfile   
+import shutil    
 
 # ========= CONFIGURAÇÕES SPOTIFY ==========
-# A URI de redirecionamento será configurada no dashboard do Spotify
-# para a URL do seu aplicativo implantado.
-# Ex: https://seu-nome-de-usuario-seu-app.streamlit.app/
+
 SPOTIPY_REDIRECT_URI = st.secrets.get("SPOTIPY_REDIRECT_URI", 'http://127.0.0.1:8888/callback')
 
 # ========= FUNÇÕES AUXILIARES ==========
+
 def limpar_nome(nome):
     """Remove caracteres inválidos para nomes de arquivo."""
     return re.sub(r'[\\/*?:"<>|]', "", nome)
@@ -27,15 +26,12 @@ def get_playlist_id(url):
         return url.split('/')[-1].split('?')[0]
     except (IndexError, AttributeError):
         return None
-
-# A função de salvar/carregar progresso foi removida para simplificar a implantação na web.
-
+    
 # ========= FUNÇÕES PRINCIPAIS ==========
 @st.cache_resource
 def autenticar_spotify():
     "Autentica com a API do Spotify usando Spotipy. Usa cache do Streamlit."
     try:
-        # Carrega os segredos diretamente do Streamlit Secrets
         auth_manager = SpotifyOAuth(
             client_id=st.secrets["SPOTIPY_CLIENT_ID"],
             client_secret=st.secrets["SPOTIPY_CLIENT_SECRET"],
@@ -50,9 +46,11 @@ def autenticar_spotify():
         st.stop()
 
 @st.cache_data
-def get_todas_as_musicas(_sp, playlist_id):
+def get_todas_as_musicas(playlist_id):
     "Busca TODAS as músicas de uma playlist, lidando com paginação."
     try:
+        _sp = autenticar_spotify()
+        
         resultados = _sp.playlist_items(playlist_id)
         musicas = resultados['items']
         while resultados['next']:
@@ -68,7 +66,7 @@ def baixar_musica(nome_musica, artista, pasta_destino, status_placeholder):
     nome_arquivo_base = f"{limpar_nome(artista)} - {limpar_nome(nome_musica)}"
     caminho_completo = os.path.join(pasta_destino, nome_arquivo_base)
 
-    # Não verificamos mais se o arquivo existe, pois a pasta é sempre temporária e vazia.
+
     try:
         busca = f"{artista} - {nome_musica} official audio"
         status_placeholder.info(f"🔎 Buscando: {busca}...")
@@ -84,7 +82,7 @@ def baixar_musica(nome_musica, artista, pasta_destino, status_placeholder):
 
         ydl_opts = {
             'format': 'bestaudio/best',
-            'outtmpl': f"{caminho_completo}.%(ext)s", # Adiciona extensão dinamicamente
+            'outtmpl': f"{caminho_completo}.%(ext)s",
             'postprocessors': [{'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '192'}],
             'quiet': True,
             'noplaylist': True,
@@ -93,8 +91,7 @@ def baixar_musica(nome_musica, artista, pasta_destino, status_placeholder):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
         
-        # Nome do arquivo final com a extensão correta (.mp3)
-        caminho_final_arquivo = f"{caminho_completo}.mp3"
+        caminho_final_arquivo = f"{caminho_completo}"
 
         status_placeholder.success(f"✅ Sucesso: {nome_arquivo_base}")
         return caminho_final_arquivo
@@ -115,13 +112,12 @@ url_playlist = st.text_input(
     placeholder="https://open.spotify.com/playlist/..."
 )
 
-# A entrada de pasta foi removida.
-# As opções avançadas foram simplificadas.
+# A entrada de pasta foi removida (para simplificar o uso, já que o Streamlit não lida bem com caminhos de arquivos locais).
+# As opções avançadas foram simplificadas (Simplificado para apenas uma opção, mas vou ver se volto a como era antes).
 with st.expander("⚙️ Opções Avançadas"):
     limite_download = st.number_input(
         "🎵 Máximo de músicas a baixar (0 = todas)",
-        min_value=0, value=10, step=1, # Valor padrão alterado para 10 para evitar downloads muito longos
-        help="Se 0, tentará baixar todas as músicas da playlist."
+        min_value=0, value=1, step=1, 
     )
 
 if st.button("Iniciar Download", type="primary", use_container_width=True):
@@ -132,7 +128,7 @@ if st.button("Iniciar Download", type="primary", use_container_width=True):
         sp = autenticar_spotify()
         
         with st.spinner("Buscando informações da playlist..."):
-            todas_as_musicas = get_todas_as_musicas(sp, playlist_id)
+            todas_as_musicas = get_todas_as_musicas(playlist_id)
         
         if todas_as_musicas:
             total_playlist = len(todas_as_musicas)
