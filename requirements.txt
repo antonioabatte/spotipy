@@ -1,4 +1,6 @@
-﻿spotipy==2.25.1
-streamlit==1.45.1
-youtube-search-python==1.6.6
-yt-dlp==2025.3.31
+﻿streamlit
+spotipy
+youtubesearchpython==1.6.6
+yt-dlp
+ffmpeg-python
+httpx==0.23.0
