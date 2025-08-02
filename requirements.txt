@@ -1,6 +1,6 @@
 ﻿streamlit
 spotipy
-youtubesearchpython==1.6.6
+youtubesearchpython
 yt-dlp
 ffmpeg-python
 httpx==0.23.0
